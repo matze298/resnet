@@ -8,6 +8,7 @@ The first goal is to match the reported results of the paper (see table below).
 * Using ADAM-optimizer instead of Momentum-SGD
 
 Results:
+
 Dataset | Results (Test Set) | Reported Results
 ------- | ------------------ | -----------------
 CIFAR-10 | 81.25%             | 93.67 %
