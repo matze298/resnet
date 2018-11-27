@@ -9,5 +9,5 @@ The first goal is to match the reported results of the paper (see table below).
 
 Results:
 Dataset | Results (Test Set) | Reported Results
---------|--------------------|------------------
-CIFAR-10| 81.25%             |93.67 %
+------- | ------------------ | -----------------
+CIFAR-10 | 81.25%             | 93.67 %
