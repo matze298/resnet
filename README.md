@@ -6,9 +6,9 @@ The first goal is to match the reported results of the paper on CIFAR-10 (see ta
 
 ## Results
 
-Dataset | Results | Reported Results
-------- | ------------------ | -----------------
-CIFAR-10 | 81.25%             | 93.67 %
+Dataset  | Results | Optimizer | Reported Results
+-------- | --------| --------- | -----------------
+CIFAR-10 | 83.28%  | Adam      | 93.67 %
 
 
 ## Differences to paper
