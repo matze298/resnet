@@ -1,8 +1,9 @@
 #!/usr/bin/env python
-'''
+
+"""
 My own residual network
 Implemented in TF
-'''
+"""
 
 import tensorflow as tf
 import numpy as np
@@ -90,7 +91,12 @@ with graph.as_default():
     global_step = tf.Variable(0, trainable=False)
     start_learning_rate = 0.01
 
+    # Decay learning rate after 50000 iterations
+    # Min. learning rate --> 0.0001
+    #learning_rate = tf.cond(tf.less(global_step, tf.constant(1600)), lambda: tf.constant(0.01),
+    #                        lambda: tf.train.exponential_decay(start_learning_rate, global_step, 40000, 0.1, staircase=True))
     learning_rate = tf.train.exponential_decay(start_learning_rate, global_step, 50000, 0.1, staircase=True)
+    learning_rate = tf.maximum(0.0001, learning_rate)
     tf.summary.scalar('learning_rate', learning_rate)
 
     # Data Augmentation --> 0-Padding and random crop
@@ -118,7 +124,8 @@ with graph.as_default():
     # Ensure that BN running averages are updated during training
     update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
     with tf.control_dependencies(update_ops):
-        train_op = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(loss, global_step=global_step)
+        # train_op = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(loss, global_step=global_step)
+        train_op = tf.train.MomentumOptimizer(learning_rate=learning_rate, momentum=0.9).minimize(loss, global_step=global_step)
     saver = tf.train.Saver()
 
 #%% Run graph
@@ -140,14 +147,16 @@ with tf.Session(config=config, graph=graph) as sess:
     sess.run(tf.global_variables_initializer())
 
     # Create writer for tensorboard
-    train_writer = tf.summary.FileWriter('./log_mean/train', sess.graph)
-    val_writer = tf.summary.FileWriter('./log_mean/val', sess.graph)
+    train_writer = tf.summary.FileWriter('./log_mom/train', sess.graph)
+    val_writer = tf.summary.FileWriter('./log_mom/val', sess.graph)
 
     # Iterate over epochs
     num_train_samples = x_train.shape[0]
     for epoch in range(num_epochs):
         # Shuffle training data
         train_idx = np.random.permutation(np.arange(num_train_samples))
+        x_train = x_train[train_idx, ...]
+        y_train = y_train[train_idx, ...]
         num_steps = int(np.ceil(num_train_samples/batch_size))
         epoch_loss = 0
         acc = np.array([])
@@ -179,7 +188,7 @@ with tf.Session(config=config, graph=graph) as sess:
                 if val_acc >= best_acc:
                     print('New best accuracy! %.2f %%' % val_acc)
                     best_acc = val_acc
-                    saver.save(sess, 'tmp/model_mean.ckpt')
+                    saver.save(sess, 'tmp/model_mom.ckpt')
             if (step+1) % 400 == 0:
                 print('Current (mean) training accuracy: %.2f %%' % np.mean(acc))
 
@@ -189,8 +198,15 @@ with tf.Session(config=config, graph=graph) as sess:
         epoch_loss = 0
 
 #%% Test Accuracy
+def get_accuracy(pred, labels):
+    return 100 * np.sum(pred == np.argmax(labels, 1)) / pred.shape[0]
+
+# GPU growth
+config = tf.ConfigProto()
+config.gpu_options.allow_growth = True
+
 with tf.Session(config=config,graph=graph) as sess:
-    saver.restore(sess, 'tmp/model_2.ckpt')
+    saver.restore(sess, 'tmp/model_mom.ckpt')
     print('Model restored!')
     # Test accuracy
     feed_dict = {x_pl: x_test,

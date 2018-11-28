@@ -1,16 +1,20 @@
-#%%
+"""
+
+"""
+
 import tensorflow as tf
 import numpy as np
 
 
-def res_block(x, scope, kernel_size, out_channels, training=False, pool=False):
+def res_block(x, scope, kernel_size, out_channels, training=False, pool=False, first=False):
     # Get input channels
     in_channels = x.get_shape()[-1]
 
     # Check, if feature map size changes
-    stride = [1, 1, 1, 1]
     if pool:
         stride = [1, 2, 2, 1]
+    else:
+        stride = [1, 1, 1, 1]
 
     # Get variables
     with tf.variable_scope(scope) as sc:
@@ -25,8 +29,11 @@ def res_block(x, scope, kernel_size, out_channels, training=False, pool=False):
 
     # Define layers
     # Pre-Activation approach BN --> ReLU --> Conv
-    net = tf.layers.batch_normalization(x, training=training)
-    net = tf.nn.relu(net)
+    if not first:
+        net = tf.layers.batch_normalization(x, training=training)
+        net = tf.nn.relu(net)
+    else:
+        net = x
     net = tf.nn.conv2d(net, w1, stride, 'SAME') + b1
     net = tf.layers.batch_normalization(net, training=training)
     net = tf.nn.relu(net)
@@ -44,14 +51,15 @@ def res_block(x, scope, kernel_size, out_channels, training=False, pool=False):
         return net + x
 
 
-def bottleneck_block(x, scope, kernel_size, out_channels, training=False, pool=False):
+def bottleneck_block(x, scope, kernel_size, out_channels, training=False, pool=False, first = False):
     # Get input channels
     in_channels = tf.shape(x)[-1]
 
     # Check, if feature map size changes
-    stride = [1, 1, 1, 1]
     if pool:
         stride = [1, 2, 2, 1]
+    else:
+        stride = [1, 1, 1, 1]
 
     # Get variables
     with tf.variable_scope(scope) as sc:
@@ -70,8 +78,12 @@ def bottleneck_block(x, scope, kernel_size, out_channels, training=False, pool=F
 
     # Define layers
     # Pre-Activation approach BN --> ReLU --> Conv
-    net = tf.layers.batch_normalization(x, training=training)
-    net = tf.nn.relu(net)
+    if not first:
+        net = tf.layers.batch_normalization(x, training=training)
+        net = tf.nn.relu(net)
+    else:
+        net = x
+
     net = tf.nn.conv2d(net, w1, stride, 'SAME') + b1
     net = tf.layers.batch_normalization(net,training=training)
     net = tf.nn.relu(net)
@@ -93,6 +105,7 @@ def bottleneck_block(x, scope, kernel_size, out_channels, training=False, pool=F
 
 
 class ResNet():
+    # Constructor --> ResNet-110 for CIFAR-10 are default values
     def __init__(self, kernel_size=3, block_size=[18, 18, 18], bottleneck=False, block_channels=[16, 32, 64]):
         self.bottleneck = bottleneck
         self.kernel_size = kernel_size
@@ -108,20 +121,28 @@ class ResNet():
             b = tf.get_variable('b', shape=[16], initializer=tf.initializers.zeros())
 
         # Output: Nonex32x32x16
-        net = tf.nn.relu(tf.nn.conv2d(x, w, [1, 1, 1, 1], 'SAME')+b)
+        net = tf.nn.conv2d(x, w, [1, 1, 1, 1], 'SAME')+b
+        net = tf.nn.relu(tf.layers.batch_normalization(net, training=is_training))
 
         # Bottleneck-Blocks
         for i in range(self.num_blocks):
             num_layers = self.block_size[i]*2
             print('Building ResNet block %d with %d layers' % (i+1, num_layers))
             for j in range(self.block_size[i]):
-                if j == 0:
+                if (j == 0) & (i != 0):
+                    # Pool at first layer of block
+                    # Except for first block
                     pool = True
                 else:
                     pool = False
+                if (j is 0) & (i is 0):
+                    first = True
+                else:
+                    first = False
+
                 net = res_block(net, 'conv'+str(i+2)+'_'+str(j), self.kernel_size, self.block_channels[i],
-                                training=is_training, pool=pool)
-                #print(net.get_shape())
+                                training=is_training, pool=pool, first=first)
+                print(net.get_shape())
 
         # Average Pooling & softmax-block
         net = tf.reduce_mean(net, axis=[1, 2])
