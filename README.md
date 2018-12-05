@@ -11,7 +11,7 @@ The training set is split into 45k training images and 5k validation images to d
 Dataset  | Layers | Results | Optimizer | Reported Results
 -------- | ------ |-------- | --------- | -----------------
 CIFAR-10 | 110    | 83.28%  | Adam      | 93.67 %
-CIFAR-10 | 110    | 91.36%  | Momentum-SGD | 93.67 %
+CIFAR-10 | 110    | 91.58%  | Momentum-SGD | 93.67 %
 
 
 ## Differences to paper
