@@ -6,7 +6,7 @@ Currently, the ResNet-110 for CIFAR-10 is implemented.
 The first goal is to match the reported results of the paper on CIFAR-10 (see table below). 
 
 ## Results
-The training set is split into 45k training images and 5k validation images. Results are reported on the test set. 
+The training set is split into 45k training images and 5k validation images to determine the training parameters and global_step for early stopping. Afterwards, it is retrained using the full training dataset. Results are reported on the test set. 
 
 Dataset  | Layers | Results | Optimizer | Reported Results
 -------- | ------ |-------- | --------- | -----------------
